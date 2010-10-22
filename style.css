@@ -116,3 +116,8 @@
     width: 15px;
     height: 15px;
 }
+.cell a{
+    display: block;
+    width: 15px;
+    height: 15px;
+}
