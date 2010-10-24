@@ -1,21 +1,25 @@
 $(document).ready(function(){
+    var socket = new io.Socket();
+    socket.connect();
+
     var table = $("<table>")
     $("#board").append(table);
 
     $.getJSON("/setup.js", function(r){
-        for(var i = 0; i < r.size.x; i++){
+        for(i = 0; i < r.size.x; i++){
             var row = $("<tr>");
             table.append(row);
-            for(var j = 0; j < r.size.y; j++){
-                var cell = $('<td id="cell_'+i+'_'+j+'" class="cell row_'+i+' col_'+j+'">')
-                var cell_link = $("<a href='/add.js?row="+i+"&col="+j+"'>")
-                cell_link.click(function(event){
-                    $.ajax({
-                        url: this.href,
-                        dataType: "script"
+            for(j = 0; j < r.size.y; j++){
+                var cell = $('<td id="cell_'+i+'_'+j+'" class="cell row_'+i+' col_'+j+'">');
+                var cell_link = $("<a>");
+                
+                (function(link,x,y){
+                    link.click(function(event){
+                        socket.send({new_cell: {row: x, col: y}});
+                        event.preventDefault();
                     });
-                    event.preventDefault();
-                });
+                })(cell_link, i,j);
+                
                 cell.append(cell_link);
                 row.append(cell);
             }
@@ -44,10 +48,25 @@ $(document).ready(function(){
                 (r.next_step_at - Number(new Date()))/1000.0 + "s"
             );
         });
-    }
+    };
     var updateTO = function(){
         update();
         setTimeout(updateTO, 150);
     };
-    updateTO();
+    //updateTO();
+
+
+    socket.on('connect', function(){
+        console.log("Connect from socket")
+    })
+    socket.on('message', function(message){
+        console.log("Message from socket "+message)
+        if(message.new_cell){
+            $("#cell_"+message.new_cell.row+"_"+message.new_cell.col).addClass("marked");
+        }
+    })
+    socket.on('disconnect', function(){
+        console.log("Disonnect from socket")
+    })
+    
 });

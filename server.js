@@ -4,12 +4,18 @@ var http = require('http'),
     querystring = require('querystring'),
     sys = require("sys"),
 
+
+    // MongoDB requires
     mongodb_path = "./node-mongodb-native/lib/mongodb",
     Db = require(mongodb_path).Db,
     Connection = require(mongodb_path).Connection,
     Server = require(mongodb_path).Server,
     // BSON = require(mongodb_path).BSONPure,
     BSON = require(mongodb_path).BSONNative,
+
+
+   // Websockets requires
+   io = require('./io-node'),
 
 settings = {
     port: 8080,
@@ -38,9 +44,9 @@ db.open(function(e, db) {})
 
 db.dropDatabase(function() {});
 
-http.createServer(function (req, res) {
+var server = http.createServer(function (req, res) {
     var path = url.parse(req.url).pathname;
-    // console.info("Request received: "+req.url);
+    console.info("Request received: "+req.url);
 
     switch (path){
     case '/update.js':
@@ -56,11 +62,6 @@ http.createServer(function (req, res) {
         }), 'utf8');
 	res.end();
         break;
-    case '/add.js':
-        add_cell(req,res);
-        break;
-
-
         
     case '/':
     case "/index.html":
@@ -75,9 +76,38 @@ http.createServer(function (req, res) {
         break;
     default: send404(res);
     }
-}).listen(settings.port, "127.0.0.1");
+})
+server.listen(settings.port, "127.0.0.1");
 
 console.log('Server running at http://127.0.0.1:'+settings.port+'/');
+
+
+// server = http.createServer(function(req, res){
+//     // your normal server code
+//     res.writeHeader(200, {'Content-Type': 'text/html'});
+//     res.writeBody('<h1>Hello world</h1>');
+//     res.finish();
+// });
+
+// socket.io, I choose you
+var socket = io.listen(server);
+socket.on('connection', function(client){
+    
+    client.on('message', function(message){
+        if(message.new_cell){
+            add_cell(message.new_cell.row, message.new_cell.col);
+            to_send = {
+                new_cell: {
+                    row: message.new_cell.row,
+                    col: message.new_cell.col
+                }
+            }
+            client.send(to_send);
+            client.broadcast(to_send);
+        }
+    });
+
+});
 
 
 //-----------------------------------------------------------------------------------
@@ -107,16 +137,10 @@ var update_game = function(req, res){
     });
 }
 
-var add_cell = function(req, res){
-
-    params = url.parse(req.url, true).query;
-    
+var add_cell = function(row, col)){
     db.collection('cells', function(err, collection) {
-        collection.insert({'row': params.row, 'col': params.col});
+        collection.insert({'row': row, 'col': col});
     });
-    res.writeHead(200, {'Content-Type': 'text/javascript'});
-    res.write("", 'utf8');
-    res.end();
 }
 
 var step = function(){
