@@ -60,9 +60,12 @@ $(document).ready(function(){
         console.log("Connect from socket")
     })
     socket.on('message', function(message){
-        console.log("Message from socket "+message)
+        console.log("Message from socket ", message)
         if(message.new_cell){
             $("#cell_"+message.new_cell.row+"_"+message.new_cell.col).addClass("marked");
+        }
+        if(message.removed_cell){
+            $("#cell_"+message.removed_cell.row+"_"+message.removed_cell.col).removeClass("marked");
         }
     })
     socket.on('disconnect', function(){

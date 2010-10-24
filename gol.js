@@ -1,5 +1,6 @@
 // basic imports
-var events = require('events');
+var events = require('events'),
+sys = require("sys");
 
 // for us to do a require later
 module.exports = Gol;
@@ -34,22 +35,44 @@ Gol.prototype.step = function(){
                 cells.forEach(function(cell) {
                     board[parseInt(cell.row)][parseInt(cell.col)] = true
                 });
-                collection.remove(function(err, collection) {
-                    for(var i=0;i<self.size_x;i++) {
-                        for(var j=0;j<self.size_y;j++) {
-                            n = self.neighbours(board, i, j);
-
-                            if(n==3 || (n==2 && board[i][j]== true))
-                                collection.insert({'row': i, 'col': j});
-                        }
+                
+                
+                for(var i=0;i<self.size_x;i++) {
+                    for(var j=0;j<self.size_y;j++) {
+                        n = self.neighbours(board, i, j);
+                        
+                        is_alive = board[i][j]== true;
+                        should_be_alive = (n==3 || (n==2 && is_alive))
+                        
+                        if(is_alive && !should_be_alive)
+                            self.remove_cell(i,j);
+                        if(!is_alive && should_be_alive)
+                            self.add_cell(i,j);
                     }
+                }
+                
                     
-                    
-                });
             });
         });
     });
 }
+
+Gol.prototype.add_cell = function(x, y){
+    var self = this;
+    self.db.collection('cells', function(err, collection) {
+        collection.insert({row: x, col: y });
+        self.emit("cell_added", x, y);
+    });
+}
+Gol.prototype.remove_cell = function(x, y){
+    var self = this;
+    self.db.collection('cells', function(err, collection) {
+        collection.remove({row: x, col: y }, function(err, r) {
+            self.emit("cell_removed", x, y);
+        });
+    });
+}
+
 
 Gol.prototype.neighbours = function(board, x, y){
     var self = this;

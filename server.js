@@ -39,11 +39,13 @@ send404 = function(res){
 var next_step_at = 0;
 
 var db = new Db('game-of-life-online', new Server(settings.mongodb.host, settings.mongodb.port, {}), {native_parser:true})
-db.open(function(e, db) {}) 
+db.open(function(e, db) {
+    db.dropDatabase(function() {});
+});
+
+
 
 var game = new Gol(db, settings.size.x, settings.size.y);
-
-db.dropDatabase(function() {});
 
 var server = http.createServer(function (req, res) {
     var path = url.parse(req.url).pathname;
@@ -96,19 +98,29 @@ socket.on('connection', function(client){
     
     client.on('message', function(message){
         if(message.new_cell){
-            add_cell(message.new_cell.row, message.new_cell.col);
-            to_send = {
-                new_cell: {
-                    row: message.new_cell.row,
-                    col: message.new_cell.col
-                }
-            }
-            client.send(to_send);
-            client.broadcast(to_send);
+            game.add_cell(message.new_cell.row, message.new_cell.col);
         }
     });
-
+    
 });
+game.on("cell_added", function(x,y){
+    to_send = {
+        new_cell: {
+            row: x,
+            col: y
+        }
+    }
+    socket.broadcast(to_send);
+})
+game.on("cell_removed", function(x,y){
+    to_send = {
+        removed_cell: {
+            row: x,
+            col: y
+        }
+    }
+    socket.broadcast(to_send);
+})
 
 
 //-----------------------------------------------------------------------------------
@@ -137,12 +149,6 @@ var update_game = function(req, res){
         });
     });
 };
-
-var add_cell = function(row, col){
-    db.collection('cells', function(err, collection) {
-        collection.insert({'row': row, 'col': col});
-    });
-}
 
 var step = function(){
     game.step();
