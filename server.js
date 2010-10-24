@@ -3,7 +3,7 @@ var http = require('http'),
     url = require('url'),
     querystring = require('querystring'),
     sys = require("sys"),
-
+    Gol = require("./gol.js"),
 
     // MongoDB requires
     mongodb_path = "./node-mongodb-native/lib/mongodb",
@@ -41,6 +41,7 @@ var next_step_at = 0;
 var db = new Db('game-of-life-online', new Server(settings.mongodb.host, settings.mongodb.port, {}), {native_parser:true})
 db.open(function(e, db) {}) 
 
+var game = new Gol(db, settings.size.x, settings.size.y);
 
 db.dropDatabase(function() {});
 
@@ -135,60 +136,17 @@ var update_game = function(req, res){
             });
         });
     });
-}
+};
 
-var add_cell = function(row, col)){
+var add_cell = function(row, col){
     db.collection('cells', function(err, collection) {
         collection.insert({'row': row, 'col': col});
     });
 }
 
 var step = function(){
-
-    board = new Array()
-    for(i=0;i<settings.size.x;i++) {
-        board[i] = new Array();
-    }
-    
-    var neighbours = function(board, x, y){
-        var from_x = (x==0 ? 0 : x-1);
-        var to_x   = (x==settings.size.x-1 ? settings.size.x-1 : x+1);
-        var from_y = (y==0 ? 0 : y-1);
-        var to_y   = (y==settings.size.y-1 ? settings.size.y-1 : y+1);
-        var n      = 0
-
-        for(var i = from_x;i <= to_x;i++){
-            for(var j = from_y;j <= to_y;j++){
-                if(!(i == x && j == y))
-                    if(board[i][j] == true)
-                        n++;
-            }
-        }
-        return n;
-    }
-    db.collection('cells', function(err, collection) {
-        collection.find(function(err, cursor) {
-            cursor.toArray(function(err, cells) {
-                cells.forEach(function(cell) {
-                    board[parseInt(cell.row)][parseInt(cell.col)] = true
-                });
-                collection.remove(function(err, collection) {
-                    for(var i=0;i<settings.size.x;i++) {
-                        for(var j=0;j<settings.size.y;j++) {
-                            n = neighbours(board, i, j);
-
-                            if(n==3 || (n==2 && board[i][j]== true))
-                                collection.insert({'row': i, 'col': j});
-                        }
-                    }
-                    
-                    
-                    setTimeout(step, settings.steps_time);
-                    next_step_at = Number(new Date()) + settings.steps_time;
-
-                });
-            });
-        });
-    });
+    game.step();
+    setTimeout(step, settings.steps_time);
+    next_step_at = Number(new Date()) + settings.steps_time;
 }
 step()
