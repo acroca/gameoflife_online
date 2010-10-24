@@ -112,7 +112,7 @@
     margin: 0 auto;
 }
 .cell{
-    background-color: #EEE;
+    background-color: #DDD;
     width: 15px;
     height: 15px;
 }
@@ -120,4 +120,7 @@
     display: block;
     width: 15px;
     height: 15px;
+}
+.cell.marked{
+    background-color: #D00;
 }
