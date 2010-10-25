@@ -80,34 +80,26 @@ var server = http.createServer(function (req, res) {
     default: send404(res);
     }
 })
-server.listen(settings.port, "127.0.0.1");
+server.listen(settings.port);
 
-console.log('Server running at http://127.0.0.1:'+settings.port+'/');
+console.log('Server running at http://0.0.0.0:'+settings.port+'/');
 
-
-// server = http.createServer(function(req, res){
-//     // your normal server code
-//     res.writeHeader(200, {'Content-Type': 'text/html'});
-//     res.writeBody('<h1>Hello world</h1>');
-//     res.finish();
-// });
-
-// socket.io, I choose you
 var socket = io.listen(server);
 socket.on('connection', function(client){
     
     client.on('message', function(message){
         if(message.new_cell){
-            game.add_cell(message.new_cell.row, message.new_cell.col);
+            game.add_cell(message.new_cell.row, message.new_cell.col, [client.sessionId]);
         }
     });
     
 });
-game.on("cell_added", function(x,y){
+game.on("cell_added", function(x,y,owners){
     to_send = {
         new_cell: {
             row: x,
-            col: y
+            col: y,
+            owners: owners
         }
     }
     socket.broadcast(to_send);
