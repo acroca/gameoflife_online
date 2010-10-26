@@ -42,16 +42,18 @@ Gol.prototype = Object.create(events.EventEmitter.prototype, {
 Gol.prototype.step = function(){
     var self = this;
     
+    var removed_cells = [];
+    var created_cells = [];
     
-    board = new Array()
+    board = []
     for(i=0;i<self.size_x;i++) {
-        board[i] = new Array();
+        board[i] = []
     }
     self.db.collection('cells', function(err, collection) {
         collection.find(function(err, cursor) {
             cursor.toArray(function(err, cells) {
                 cells.forEach(function(cell) {
-                    board[parseInt(cell.row)][parseInt(cell.col)] = cell.owners
+                    board[parseInt(cell.row)][parseInt(cell.col)] = cell;
                 });
                 
                 
@@ -60,50 +62,58 @@ Gol.prototype.step = function(){
                         n = self.neighbours(board, i, j);
                         
                         is_alive = board[i][j] != null;
-                        should_be_alive = (n.count==3 || (n.count==2 && is_alive))
+                        should_be_alive = (n.count==3 || (n.count==2 && is_alive));
                         
                         if(is_alive && !should_be_alive)
-                            self.remove_cell(i,j);
+                            removed_cells.push(board[i][j]);
                         if(!is_alive && should_be_alive)
-                            self.add_cell(i,j, n.owners);
+                            created_cells.push({
+                                row: i,
+                                col: j,
+                                owners: n.owners.uniq()
+                            });
                     }
                 }
-                
-                    
+                self.add_cells(created_cells);
+                self.remove_cells(removed_cells);
             });
         });
     });
 }
 
-Gol.prototype.each_cell = function(callback){
+Gol.prototype.all_cells = function(callback){
     var self = this;
     self.db.collection('cells', function(err, collection) {
         collection.find(function(err, cursor) {
             cursor.toArray(function(err, cells) {
-                cells.forEach(function(cell) {
-                    callback(cell.row, cell.col, cell.owners);
-                });
+                callback(cells);
             });
         });
     });
 };
 
-Gol.prototype.add_cell = function(x, y, owners){
+Gol.prototype.add_cells = function(cells){
     var self = this;
-    owners = owners.uniq();
+
     self.db.collection('cells', function(err, collection) {
-        collection.insert({row: x, col: y, owners: owners});
-        self.emit("cell_added", x, y, owners);
-    });
-}
-Gol.prototype.remove_cell = function(x, y){
-    var self = this;
-    self.db.collection('cells', function(err, collection) {
-        collection.remove({row: x, col: y}, function(err, r) {
-            self.emit("cell_removed", x, y);
+        cells.forEach(function(cell){
+            collection.insert(cell);
         });
+        self.emit("cells_added", cells);
     });
-}
+};
+
+
+Gol.prototype.remove_cells = function(cells){
+    var self = this;
+    self.db.collection('cells', function(err, collection) {
+        cells.forEach(function(cell){
+            collection.remove({row: cell.row, col: cell.col}, function(err, r) {
+            });
+        });
+        self.emit("cells_removed", cells);
+    });
+};
 
 
 Gol.prototype.neighbours = function(board, x, y){
@@ -118,8 +128,8 @@ Gol.prototype.neighbours = function(board, x, y){
     for(var i = from_x;i <= to_x;i++){
         for(var j = from_y;j <= to_y;j++){
             if(!(i == x && j == y))
-                if(board[i][j]){
-                    board[i][j].forEach(function(owner){
+                if(board[i][j] && board[i][j].owners){
+                    board[i][j].owners.forEach(function(owner){
                         owners.push(owner);
                     });
                     n++;

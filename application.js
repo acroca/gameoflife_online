@@ -16,12 +16,18 @@ $(document).ready(function(){
 
     socket.on('message', function(message){
         console.log("Message from socket: ", message)
-        if(message.new_cell){
-            $("#cell_"+message.new_cell.row+"_"+message.new_cell.col).addClass("marked");
-        }
-        if(message.removed_cell){
-            $("#cell_"+message.removed_cell.row+"_"+message.removed_cell.col).removeClass("marked");
-        }
+        if(message.new_cells){
+            $.each(message.new_cells, function(i, cell){
+                $("#cell_"+cell.row+"_"+cell.col)
+                    .addClass("marked");
+            });
+        };
+        if(message.removed_cells){
+            $.each(message.removed_cells, function(i, cell){
+                $("#cell_"+cell.row+"_"+cell.col)
+                    .removeClass("marked");
+            });
+        };
         if(message.setup){
             build_board(message.setup.size.x, message.setup.size.y);
         }

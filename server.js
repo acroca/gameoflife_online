@@ -40,7 +40,12 @@ var next_step_at = 0;
 
 var db = new Db('game-of-life-online', new Server(settings.mongodb.host, settings.mongodb.port, {}), {native_parser:true})
 db.open(function(e, db) {
-    db.dropDatabase(function() {});
+    db.dropCollection('cells', function(err, result) {
+        db.collection('cells', function(err, collection) {
+            collection.ensureIndex([['row', 1], ['col', 1]], true, function(err, indexName) {
+            });
+        });
+    });
 });
 
 
@@ -81,39 +86,52 @@ socket.on('connection', function(client){
             }
         }
     });
-    game.each_cell(function(row,col,owners){
-        send_new_cell(row,col,owners);
+
+    game.all_cells(function(collection){
+        send_new_cells(collection);
     });
 
     client.on('message', function(message){
         if(message.new_cell){
-            game.add_cell(message.new_cell.row, message.new_cell.col, [client.sessionId]);
+            message.new_cell.owners = [client.sessionId];
+            game.add_cells([message.new_cell]);
         }
     });
     
 });
-game.on("cell_added", function(x,y,owners){
-    send_new_cell(x,y,owners)
+game.on("cells_added", function(collection){
+    send_new_cells(collection);
 });
-game.on("cell_removed", function(x,y){
-    to_send = {
-        removed_cell: {
-            row: x,
-            col: y
-        }
-    }
-    socket.broadcast(to_send);
+game.on("cells_removed", function(collection){
+    send_removed_cells(collection);
 });
 
-var send_new_cell = function(row,col,owners){
-    to_send = {
-        new_cell: {
-            row: row,
-            col: col,
-            owners: owners
-        }
-    }
+var send_new_cells = function(collection){
+    if(collection.length == 0)
+        return;
+    to_send = {new_cells: []}
+    
+    collection.forEach(function(cell){
+        to_send.new_cells.push(cell_hash(cell));
+    });
     socket.broadcast(to_send);
+}
+var send_removed_cells = function(collection){
+    if(collection.length == 0)
+        return;
+    to_send = {removed_cells: []}
+    
+    collection.forEach(function(cell){
+        to_send.removed_cells.push(cell_hash(cell));
+    });
+    socket.broadcast(to_send);
+}
+var cell_hash = function(cell){
+    return {
+        row: cell.row,
+        col: cell.col,
+        owners: cell.owners
+    };
 }
 
 //-----------------------------------------------------------------------------------
