@@ -16,6 +16,21 @@ $(document).ready(function(){
 
     socket.on('message', function(message){
         console.log("Message from socket: ", message)
+        if(message.updated_cells){
+            $.each(message.updated_cells, function(i, cell){
+                item = $("#cell_"+cell.row+"_"+cell.col);
+                item.className.match("player_(\d+)");
+                
+                item.addClass("marked");
+                $.each(cell.owners, function(j, owner){
+                    counter = $("#player_"+owner+" .count");
+                    current = parseInt(counter.html());
+                    counter.html(current + 1);
+
+                    item.addClass("player_"+owner);
+                });
+            });
+        };
         if(message.new_cells){
             $.each(message.new_cells, function(i, cell){
                 item = $("#cell_"+cell.row+"_"+cell.col);

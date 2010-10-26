@@ -109,9 +109,13 @@ socket.on('connection', function(client){
         client.broadcast({
             player_disconnected: client.sessionId
         });
+        game.remove_owner(client.sessionId);
         var i = clientIds.indexOf(client.sessionId);
         clientIds.splice(i,1);
     });
+});
+game.on("cells_updated", function(collection){
+    send_updated_cells(collection);
 });
 game.on("cells_added", function(collection){
     send_new_cells(collection);
@@ -120,6 +124,19 @@ game.on("cells_removed", function(collection){
     send_removed_cells(collection);
 });
 
+var send_updated_cells = function(collection, client){
+    if(collection.length == 0)
+        return;
+    to_send = {updated_cells: []}
+    
+    collection.forEach(function(cell){
+        to_send.updated_cells.push(cell_hash(cell));
+    });
+    if(client != undefined)
+        client.send(to_send);
+    else
+        socket.broadcast(to_send);
+}
 var send_new_cells = function(collection, client){
     if(collection.length == 0)
         return;

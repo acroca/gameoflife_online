@@ -92,6 +92,45 @@ Gol.prototype.all_cells = function(callback){
     });
 };
 
+Gol.prototype.remove_owner = function(owner){
+    var self = this;
+    var removed_cells = [];
+    var updated_cells = [];
+
+    self.db.collection('cells', function(err, collection) {
+        collection.find({owners: owner}, function(err, cursor) {
+            cursor.toArray(function(err, cells) {
+                cells.forEach(function(cell){
+                    if(cell.owners.length == 1){
+                        // I'm the only owner
+                        removed_cells.push(cell);
+                    }else{
+                        var i = cell.owners.indexOf(owner);
+                        cell.owners.splice(i,1);
+                        collection.update({_id : cell._id}, cell, function(err, doc) {
+                            updated_cells.push(doc);
+                        });
+                    }
+                });
+                self.remove_cells(removed_cells);
+                self.update_cells(updated_cells);
+            });
+        });
+    });
+};
+
+Gol.prototype.update_cells = function(cells){
+    var self = this;
+
+    self.db.collection('cells', function(err, collection) {
+        cells.forEach(function(cell){
+            collection.update({_id : cell._id}, cell, function(err, doc) {
+            });
+        });
+        self.emit("cells_updated", cells);
+    });
+};
+
 Gol.prototype.add_cells = function(cells){
     var self = this;
 
