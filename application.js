@@ -18,21 +18,70 @@ $(document).ready(function(){
         console.log("Message from socket: ", message)
         if(message.new_cells){
             $.each(message.new_cells, function(i, cell){
-                $("#cell_"+cell.row+"_"+cell.col)
-                    .addClass("marked");
+                item = $("#cell_"+cell.row+"_"+cell.col);
+                item.addClass("marked");
+                $.each(cell.owners, function(j, owner){
+                    counter = $("#player_"+owner+" .count");
+                    current = parseInt(counter.html());
+                    counter.html(current + 1);
+
+                    item.addClass("player_"+owner);
+                });
             });
         };
         if(message.removed_cells){
             $.each(message.removed_cells, function(i, cell){
-                $("#cell_"+cell.row+"_"+cell.col)
-                    .removeClass("marked");
+                item = $("#cell_"+cell.row+"_"+cell.col);
+                item.removeClass("marked");
+                
+                $.each(cell.owners, function(j, owner){
+                    counter = $("#player_"+owner+" .count");
+                    current = parseInt(counter.html());
+                    counter.html(current - 1);
+
+                    item.removeClass("player_"+owner);
+                });
             });
         };
         if(message.setup){
             build_board(message.setup.size.x, message.setup.size.y);
+            $.each(message.setup.players, function(i, playerId){
+                add_player(playerId);
+            })
+        };
+        if(message.player_connected){
+            add_player(message.player_connected);
+        };
+        if(message.player_disconnected){
+            remove_player(message.player_disconnected);
+        };
+    });
+
+    $("#players li .name").live('mouseover mouseout', function(e){
+        if (e.type == 'mouseover') {
+            
+            $(".cell")
+                .addClass("non_highlighted");
+            $(".cell."+$(this).parent('li').attr('id'))
+                .removeClass("non_highlighted")
+                .addClass("highlighted");
+        }else{
+            $(".cell")
+                .removeClass("non_highlighted")
+                .removeClass("highlighted");
         }
     });
     
+    var add_player = function(id){
+        line = $("<li id='player_"+id+"' class='player'>")
+        $("#players").append(line);
+        
+        line.html("<span class='count'>0</span><span class='name'>"+id+"</span>")
+    };
+    var remove_player = function(id){
+        $("#player_"+id).remove();
+    };
+
     var build_board = function(size_x, size_y){
         table = $("<table>");
         $("#board").append(table);

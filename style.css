@@ -124,3 +124,15 @@
 .cell.marked{
     background-color: #D00;
 }
+
+.cell.marked.non_highlighted{
+    opacity:0.2;
+    filter:alpha(opacity=20);
+}
+
+#players .count{
+    margin-right: 10px;
+}
+#players .name{
+    text-decoration: underline;
+}

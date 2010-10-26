@@ -54,7 +54,6 @@ var game = new Gol(db, settings.size.x, settings.size.y);
 
 var server = http.createServer(function (req, res) {
     var path = url.parse(req.url).pathname;
-    console.info("Request received: "+req.url);
 
     switch (path){
         
@@ -77,19 +76,28 @@ server.listen(settings.port);
 console.log('Server running at http://0.0.0.0:'+settings.port+'/');
 
 var socket = io.listen(server);
+
+var clientIds = [];
 socket.on('connection', function(client){
+    clientIds.push(client.sessionId);
+    client.broadcast({
+        player_connected: client.sessionId
+    });
     client.send({
         setup:{
             size: {
                 x: settings.size.x,
                 y: settings.size.y
-            }
+            },
+            players: clientIds
         }
     });
 
     game.all_cells(function(collection){
-        send_new_cells(collection);
+        send_new_cells(collection, client);
     });
+
+    
 
     client.on('message', function(message){
         if(message.new_cell){
@@ -97,7 +105,13 @@ socket.on('connection', function(client){
             game.add_cells([message.new_cell]);
         }
     });
-    
+    client.on('disconnect', function(){
+        client.broadcast({
+            player_disconnected: client.sessionId
+        });
+        var i = clientIds.indexOf(client.sessionId);
+        clientIds.splice(i,1);
+    });
 });
 game.on("cells_added", function(collection){
     send_new_cells(collection);
@@ -106,7 +120,7 @@ game.on("cells_removed", function(collection){
     send_removed_cells(collection);
 });
 
-var send_new_cells = function(collection){
+var send_new_cells = function(collection, client){
     if(collection.length == 0)
         return;
     to_send = {new_cells: []}
@@ -114,9 +128,12 @@ var send_new_cells = function(collection){
     collection.forEach(function(cell){
         to_send.new_cells.push(cell_hash(cell));
     });
-    socket.broadcast(to_send);
+    if(client != undefined)
+        client.send(to_send);
+    else
+        socket.broadcast(to_send);
 }
-var send_removed_cells = function(collection){
+var send_removed_cells = function(collection, client){
     if(collection.length == 0)
         return;
     to_send = {removed_cells: []}
@@ -124,7 +141,10 @@ var send_removed_cells = function(collection){
     collection.forEach(function(cell){
         to_send.removed_cells.push(cell_hash(cell));
     });
-    socket.broadcast(to_send);
+    if(client != undefined)
+        client.send(to_send);
+    else
+        socket.broadcast(to_send);
 }
 var cell_hash = function(cell){
     return {
