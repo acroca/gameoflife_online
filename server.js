@@ -52,19 +52,6 @@ var server = http.createServer(function (req, res) {
     console.info("Request received: "+req.url);
 
     switch (path){
-    case '/update.js':
-        update_game(req,res);
-        break;
-    case '/setup.js':
-        res.writeHead(200, {'Content-Type': 'text/javascript'});
-	res.write(JSON.stringify({
-            size: {
-                x: settings.size.x,
-                y: settings.size.y
-            }
-        }), 'utf8');
-	res.end();
-        break;
         
     case '/':
     case "/index.html":
@@ -86,7 +73,18 @@ console.log('Server running at http://0.0.0.0:'+settings.port+'/');
 
 var socket = io.listen(server);
 socket.on('connection', function(client){
-    
+    client.send({
+        setup:{
+            size: {
+                x: settings.size.x,
+                y: settings.size.y
+            }
+        }
+    });
+    game.each_cell(function(row,col,owners){
+        send_new_cell(row,col,owners);
+    });
+
     client.on('message', function(message){
         if(message.new_cell){
             game.add_cell(message.new_cell.row, message.new_cell.col, [client.sessionId]);
@@ -95,15 +93,8 @@ socket.on('connection', function(client){
     
 });
 game.on("cell_added", function(x,y,owners){
-    to_send = {
-        new_cell: {
-            row: x,
-            col: y,
-            owners: owners
-        }
-    }
-    socket.broadcast(to_send);
-})
+    send_new_cell(x,y,owners)
+});
 game.on("cell_removed", function(x,y){
     to_send = {
         removed_cell: {
@@ -112,8 +103,18 @@ game.on("cell_removed", function(x,y){
         }
     }
     socket.broadcast(to_send);
-})
+});
 
+var send_new_cell = function(row,col,owners){
+    to_send = {
+        new_cell: {
+            row: row,
+            col: col,
+            owners: owners
+        }
+    }
+    socket.broadcast(to_send);
+}
 
 //-----------------------------------------------------------------------------------
 
@@ -125,22 +126,6 @@ var staticHandler = function(req,res, path, content_type){
 	res.end();
     });
 }
-
-var update_game = function(req, res){
-    db.collection('cells', function(err, collection) {
-        collection.find(function(err, cursor) {
-            cursor.toArray(function(err, cells) {
-                res.writeHead(200, {'Content-Type': 'text/javascript'});
-                
-                res.write(JSON.stringify({
-                    cells: cells, 
-                    next_step_at: next_step_at
-                }), 'utf8');
-                res.end();
-            });
-        });
-    });
-};
 
 var step = function(){
     game.step();

@@ -75,6 +75,19 @@ Gol.prototype.step = function(){
     });
 }
 
+Gol.prototype.each_cell = function(callback){
+    var self = this;
+    self.db.collection('cells', function(err, collection) {
+        collection.find(function(err, cursor) {
+            cursor.toArray(function(err, cells) {
+                cells.forEach(function(cell) {
+                    callback(cell.row, cell.col, cell.owners);
+                });
+            });
+        });
+    });
+};
+
 Gol.prototype.add_cell = function(x, y, owners){
     var self = this;
     owners = owners.uniq();
