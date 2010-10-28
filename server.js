@@ -1,21 +1,21 @@
 var http = require('http'), 
-    fs = require('fs'),
-    url = require('url'),
-    querystring = require('querystring'),
-    sys = require("sys"),
-    Gol = require("./gol.js"),
+fs = require('fs'),
+url = require('url'),
+querystring = require('querystring'),
+sys = require("sys"),
+Gol = require("./gol.js"),
 
-    // MongoDB requires
-    mongodb_path = "./node-mongodb-native/lib/mongodb",
-    Db = require(mongodb_path).Db,
-    Connection = require(mongodb_path).Connection,
-    Server = require(mongodb_path).Server,
-    // BSON = require(mongodb_path).BSONPure,
-    BSON = require(mongodb_path).BSONNative,
+// MongoDB requires
+mongodb_path = "./node-mongodb-native/lib/mongodb",
+Db = require(mongodb_path).Db,
+Connection = require(mongodb_path).Connection,
+Server = require(mongodb_path).Server,
+// BSON = require(mongodb_path).BSONPure,
+BSON = require(mongodb_path).BSONNative,
 
 
-   // Websockets requires
-   io = require('./io-node'),
+// Websockets requires
+io = require('./io-node'),
 
 settings = {
     port: 8080,
@@ -28,9 +28,9 @@ settings = {
         y: 10
     },
     steps_time: 5000
-}
+},
 
-send404 = function(res){
+send404 =  function(res){
     res.writeHead(404);
     res.write('404');
     res.end();
@@ -38,7 +38,7 @@ send404 = function(res){
 
 var next_step_at = 0;
 
-var db = new Db('game-of-life-online', new Server(settings.mongodb.host, settings.mongodb.port, {}), {native_parser:true})
+var db = new Db('game-of-life-online', new Server(settings.mongodb.host, settings.mongodb.port, {}), {native_parser:true});
 db.open(function(e, db) {
     db.dropCollection('cells', function(err, result) {
         db.collection('cells', function(err, collection) {
@@ -70,7 +70,7 @@ var server = http.createServer(function (req, res) {
         break;
     default: send404(res);
     }
-})
+});
 server.listen(settings.port);
 
 console.log('Server running at http://0.0.0.0:'+settings.port+'/');
@@ -127,7 +127,7 @@ game.on("cells_removed", function(collection){
 var send_updated_cells = function(collection, client){
     if(collection.length == 0)
         return;
-    to_send = {updated_cells: []}
+    to_send = {updated_cells: []};
     
     collection.forEach(function(cell){
         to_send.updated_cells.push(cell_hash(cell));
@@ -136,11 +136,11 @@ var send_updated_cells = function(collection, client){
         client.send(to_send);
     else
         socket.broadcast(to_send);
-}
+};
 var send_new_cells = function(collection, client){
     if(collection.length == 0)
         return;
-    to_send = {new_cells: []}
+    to_send = {new_cells: []};
     
     collection.forEach(function(cell){
         to_send.new_cells.push(cell_hash(cell));
@@ -149,12 +149,12 @@ var send_new_cells = function(collection, client){
         client.send(to_send);
     else
         socket.broadcast(to_send);
-}
+};
 var send_removed_cells = function(collection, client){
     if(collection.length == 0)
         return;
-    to_send = {removed_cells: []}
-    
+    to_send = {removed_cells: []};
+
     collection.forEach(function(cell){
         to_send.removed_cells.push(cell_hash(cell));
     });
@@ -162,14 +162,14 @@ var send_removed_cells = function(collection, client){
         client.send(to_send);
     else
         socket.broadcast(to_send);
-}
+};
 var cell_hash = function(cell){
     return {
         row: cell.row,
         col: cell.col,
         owners: cell.owners
     };
-}
+};
 
 //-----------------------------------------------------------------------------------
 
@@ -179,12 +179,13 @@ var staticHandler = function(req,res, path, content_type){
         res.writeHead(200, {'Content-Type': content_type});
 	res.write(data, 'utf8');
 	res.end();
+        return 1;
     });
-}
+};
 
 var step = function(){
     game.step();
     setTimeout(step, settings.steps_time);
     next_step_at = Number(new Date()) + settings.steps_time;
-}
-step()
+};
+step();

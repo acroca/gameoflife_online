@@ -17,7 +17,7 @@ Array.prototype.uniq = function () {
 		r[r.length] = this[i];
 	}
 	return r;
-}
+};
 
 
 // for us to do a require later
@@ -28,7 +28,7 @@ function Gol(db, x, y) {
     this.db = db;
     this.size_x = x;
     this.size_y = y;
-}
+};
 
 // inherit events.EventEmitter
 Gol.super_ = events.EventEmitter;
@@ -45,9 +45,9 @@ Gol.prototype.step = function(){
     var removed_cells = [];
     var created_cells = [];
     
-    board = []
+    board = [];
     for(i=0;i<self.size_x;i++) {
-        board[i] = []
+        board[i] = [];
     }
     self.db.collection('cells', function(err, collection) {
         collection.find(function(err, cursor) {
@@ -79,7 +79,7 @@ Gol.prototype.step = function(){
             });
         });
     });
-}
+};
 
 Gol.prototype.all_cells = function(callback){
     var self = this;
@@ -161,9 +161,9 @@ Gol.prototype.neighbours = function(board, x, y){
     var to_x   = (x==self.size_x-1 ? self.size_x-1 : x+1);
     var from_y = (y==0 ? 0 : y-1);
     var to_y   = (y==self.size_y-1 ? self.size_y-1 : y+1);
-    var n      = 0
+    var n      = 0;
 
-    owners = []
+    owners = [];
     for(var i = from_x;i <= to_x;i++){
         for(var j = from_y;j <= to_y;j++){
             if(!(i == x && j == y))
@@ -176,4 +176,4 @@ Gol.prototype.neighbours = function(board, x, y){
         }
     }
     return {count: n, owners: owners};
-}
+};

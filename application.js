@@ -3,11 +3,11 @@ $(document).ready(function(){
     socket.connect();
 
     socket.on('connect', function(){
-        console.log("Socket connected.")
+        console.log("Socket connected.");
     });
 
     socket.on('disconnect', function(){
-        console.log("Socket disconnected.")
+        console.log("Socket disconnected.");
     });
 
     // $("#countdown").html(
@@ -15,7 +15,7 @@ $(document).ready(function(){
     // );
 
     socket.on('message', function(message){
-        console.log("Message from socket: ", message)
+        console.log("Message from socket: ", message);
         if(message.updated_cells){
             $.each(message.updated_cells, function(i, cell){
                 item = $("#cell_"+cell.row+"_"+cell.col);
@@ -62,7 +62,7 @@ $(document).ready(function(){
             build_board(message.setup.size.x, message.setup.size.y);
             $.each(message.setup.players, function(i, playerId){
                 add_player(playerId);
-            })
+            });
         };
         if(message.player_connected){
             add_player(message.player_connected);
@@ -88,10 +88,10 @@ $(document).ready(function(){
     });
     
     var add_player = function(id){
-        line = $("<li id='player_"+id+"' class='player'>")
+        line = $("<li id='player_"+id+"' class='player'>");
         $("#players").append(line);
         
-        line.html("<span class='count'>0</span><span class='name'>"+id+"</span>")
+        line.html("<span class='count'>0</span><span class='name'>"+id+"</span>");
     };
     var remove_player = function(id){
         $("#player_"+id).remove();
@@ -118,6 +118,6 @@ $(document).ready(function(){
                 row.append(cell);
             }
         }
-    }
+    };
     
 });
